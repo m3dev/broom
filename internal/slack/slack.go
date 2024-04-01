@@ -40,7 +40,7 @@ func SendMessage(res UpdateResult, webhookURL string, webhookChannel string) err
 	}
 
 	attatchment := slack.Attachment{
-		Text: fmt.Sprintf("Namespace: *%s*\nName: *%s*\nContainer memory changes:\n%sRetried Job: *%s*\n",
+		Text: fmt.Sprintf("Namespace: *%s*\nName: *%s*\nContainer memory changes:\n%sRestarted Job: *%s*\n",
 			res.CronJobNamespace,
 			res.CronJobName,
 			memoryChanges,

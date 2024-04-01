@@ -243,23 +243,23 @@ func (r *BroomReconciler) updateCronJob(ctx context.Context, cj *batchv1.CronJob
 func (r *BroomReconciler) restartUpdatedJob(ctx context.Context, cj *batchv1.CronJob, info cronJobOOMInfo) (string, error) {
 	log := log.FromContext(ctx)
 	randomString := random.GetRandomString(5)
-	retriedJobName := fmt.Sprintf("%s-restart-%s", info.LastFailedJob.Name, randomString)
+	restartedJobName := fmt.Sprintf("%s-restart-%s", info.LastFailedJob.Name, randomString)
 	annotations := map[string]string{
 		"m3.com/restarted-by-broom": "true",
 	}
 	job := batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   cj.Namespace,
-			Name:        retriedJobName,
+			Name:        restartedJobName,
 			Labels:      info.LastFailedJob.Labels,
 			Annotations: annotations,
 		},
 		Spec: cj.Spec.JobTemplate.Spec,
 	}
 	if err := r.Create(ctx, &job); err != nil {
-		return "", fmt.Errorf("unable to create retried Job: %w", err)
+		return "", fmt.Errorf("unable to create restarted Job: %w", err)
 	}
-	log.Info("Retried Job", "name", job.Name)
+	log.Info("Restarted Job", "name", job.Name)
 	return job.Name, nil
 }
 
