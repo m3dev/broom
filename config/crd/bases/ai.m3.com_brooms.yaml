@@ -51,18 +51,7 @@ spec:
                 type: object
               restartPolicy:
                 type: string
-              target:
-                properties:
-                  labels:
-                    additionalProperties:
-                      type: string
-                    type: object
-                  name:
-                    type: string
-                  namespace:
-                    type: string
-                type: object
-              webhook:
+              slackWebhook:
                 properties:
                   channel:
                     type: string
@@ -82,10 +71,21 @@ spec:
                 required:
                 - secret
                 type: object
+              target:
+                properties:
+                  labels:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
             required:
             - adjustment
             - restartPolicy
-            - webhook
+            - slackWebhook
             type: object
           status:
             description: BroomStatus defines the observed state of Broom
