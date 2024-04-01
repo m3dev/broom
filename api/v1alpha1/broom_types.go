@@ -70,15 +70,15 @@ const (
 	RestartNeverPolicy BroomRestartPolicy = "Never"
 )
 
-type BroomWebhookSecret struct {
+type BroomSlackWebhookSecret struct {
 	Namespace string `json:"namespace"`
 	Name      string `json:"name"`
 	Key       string `json:"key"`
 }
 
-type BroomWebhook struct {
-	Secret  BroomWebhookSecret `json:"secret"`
-	Channel string             `json:"channel,omitempty"`
+type BroomSlackWebhook struct {
+	Secret  BroomSlackWebhookSecret `json:"secret"`
+	Channel string                  `json:"channel,omitempty"`
 }
 
 // BroomSpec defines the desired state of Broom
@@ -89,7 +89,7 @@ type BroomSpec struct {
 	Target        BroomTarget        `json:"target,omitempty"`
 	Adjustment    BroomAdjustment    `json:"adjustment"`
 	RestartPolicy BroomRestartPolicy `json:"restartPolicy"`
-	Webhook       BroomWebhook       `json:"webhook"`
+	SlackWebhook  BroomSlackWebhook  `json:"slackWebhook"`
 }
 
 // BroomStatus defines the observed state of Broom

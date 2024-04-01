@@ -18,7 +18,7 @@ spec:
     type: Mul
     value: "2"
   retryPolicy: "Allow"
-  webhook:
+  slackWebhook:
     secret:
       namespace: default
       name: broom

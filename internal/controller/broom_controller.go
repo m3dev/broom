@@ -113,7 +113,7 @@ func (r *BroomReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			}
 		}
 
-		if err := r.notifyResult(ctx, broom.Spec.Webhook, &cronJob, *oldSpec, restartedJobName); err != nil {
+		if err := r.notifyResult(ctx, broom.Spec.SlackWebhook, &cronJob, *oldSpec, restartedJobName); err != nil {
 			return ctrl.Result{}, fmt.Errorf("unable to notify Slack: %w", err)
 		}
 	}
@@ -281,7 +281,7 @@ func isTargeted(cj batchv1.CronJob, target aiv1alpha1.BroomTarget) bool {
 }
 
 // notifyResult notifies the result of changes with webhook information retrieved from Secret
-func (r *BroomReconciler) notifyResult(ctx context.Context, w aiv1alpha1.BroomWebhook, cj *batchv1.CronJob, oldSpec batchv1.CronJobSpec, rj string) error {
+func (r *BroomReconciler) notifyResult(ctx context.Context, w aiv1alpha1.BroomSlackWebhook, cj *batchv1.CronJob, oldSpec batchv1.CronJobSpec, rj string) error {
 	secret := &corev1.Secret{}
 	if err := r.Get(ctx, client.ObjectKey{Namespace: w.Secret.Namespace, Name: w.Secret.Name}, secret); err != nil {
 		return fmt.Errorf("unable to get Secret for webhook URL: %w", err)
