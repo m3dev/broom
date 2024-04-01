@@ -245,7 +245,7 @@ func (r *BroomReconciler) restartUpdatedJob(ctx context.Context, cj *batchv1.Cro
 	randomString := random.GetRandomString(5)
 	retriedJobName := fmt.Sprintf("%s-restart-%s", info.LastFailedJob.Name, randomString)
 	annotations := map[string]string{
-		"rendezvous.m3.com/restarted-by-broom": "true",
+		"m3.com/restarted-by-broom": "true",
 	}
 	job := batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{

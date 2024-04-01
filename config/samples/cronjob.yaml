@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: oom-sample
   labels:
-    rendezvous.m3.com/use-broom: "true"
+    m3.com/use-broom: "true"
 spec:
   schedule: "*/2 * * * *"
   jobTemplate:
