@@ -47,6 +47,14 @@ type BroomReconciler struct {
 	ResolvedJobs map[types.UID]struct{}
 }
 
+func New(mgr ctrl.Manager) *BroomReconciler {
+	return &BroomReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		ResolvedJobs: make(map[types.UID]struct{}, 0),
+	}
+}
+
 //+kubebuilder:rbac:groups=ai.m3.com,resources=brooms,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=ai.m3.com,resources=brooms/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=ai.m3.com,resources=brooms/finalizers,verbs=update
@@ -175,10 +183,6 @@ func (r *BroomReconciler) traceOOMKilledOwnerReference(br *batchResources) map[t
 				}
 			}
 		}
-	}
-
-	if r.ResolvedJobs == nil {
-		r.ResolvedJobs = make(map[types.UID]struct{}, 0)
 	}
 
 	cronJobOwnedReferences := make(map[types.UID]cronJobOOMInfo, 0)
