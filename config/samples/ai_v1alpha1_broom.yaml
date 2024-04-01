@@ -1,0 +1,12 @@
+apiVersion: ai.m3.com/v1alpha1
+kind: Broom
+metadata:
+  labels:
+    app.kubernetes.io/name: broom
+    app.kubernetes.io/instance: broom-sample
+    app.kubernetes.io/part-of: broom
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: broom
+  name: broom-sample
+spec:
+  # TODO(user): Add fields here

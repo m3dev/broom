@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - ai.m3.com
+  resources:
+  - brooms
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ai.m3.com
+  resources:
+  - brooms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ai.m3.com
+  resources:
+  - brooms/status
+  verbs:
+  - get
+  - patch
+  - update
