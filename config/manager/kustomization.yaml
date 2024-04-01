@@ -1,2 +1,8 @@
 resources:
 - manager.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- name: controller
+  newName: asia-northeast1-docker.pkg.dev/m3ai-ullman-dev/arbok/broom
+  newTag: latest

@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: oom-sample
+  labels:
+    rendezvous.m3.com/use-broom: "true"
+spec:
+  schedule: "*/2 * * * *"
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 60
+      backoffLimit: 1
+      template:
+        spec:
+          containers:
+            - name: oom-container
+              image: ubuntu:latest
+              command:
+                - /bin/bash
+                - -c
+              args:
+                - |
+                  echo PID=$$
+                  for i in {0..9}
+                  do
+                    eval a$i'=$(head --bytes 5000000 /dev/zero | cat -v)'
+                    echo $((i++));
+                  done
+              resources:
+                limits:
+                  memory: "100Mi"
+                requests:
+                  memory: "50Mi"
+          restartPolicy: Never

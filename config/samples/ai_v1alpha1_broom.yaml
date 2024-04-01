@@ -9,4 +9,18 @@ metadata:
     app.kubernetes.io/created-by: broom
   name: broom-sample
 spec:
-  # TODO(user): Add fields here
+  target:
+    # name: oom-sample
+    labels:
+      rendezvous.m3.com/use-broom: "true"
+    # namespace: broom
+  adjustment:
+    type: Mul
+    value: "2"
+  retryPolicy: "Allow"
+  webhook:
+    secret:
+      namespace: default
+      name: broom
+      key: SLACK_WEBHOOK_URL
+    # channel: "#alert"

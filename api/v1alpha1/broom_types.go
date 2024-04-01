@@ -17,19 +17,79 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+	"strconv"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+type BroomTarget struct {
+	Name      string            `json:"name,omitempty"`
+	Labels    map[string]string `json:"labels,omitempty"`
+	Namespace string            `json:"namespace,omitempty"`
+}
+
+type BroomAdjustmentType string
+
+const (
+	AddAdjustment BroomAdjustmentType = "Add"
+	MulAdjustment BroomAdjustmentType = "Mul"
+)
+
+type BroomAdjustment struct {
+	Type  BroomAdjustmentType `json:"type"`
+	Value string              `json:"value"`
+}
+
+func (adj BroomAdjustment) IncreaseMemory(m *resource.Quantity) error {
+	switch adj.Type {
+	case AddAdjustment:
+		y, err := resource.ParseQuantity(adj.Value)
+		if err != nil {
+			return fmt.Errorf("unable to parse value to resource.Quantity: %w", err)
+		}
+		m.Add(y)
+	case MulAdjustment:
+		y, err := strconv.Atoi(adj.Value)
+		if err != nil {
+			return fmt.Errorf("unable to parse value to int: %w", err)
+		}
+		m.Mul(int64(y))
+	}
+	return nil
+}
+
+type BroomRetryPolicy string
+
+const (
+	RetryAllowPolicy  BroomRetryPolicy = "Allow"
+	RetryForbidPolicy BroomRetryPolicy = "Forbid"
+)
+
+type BroomWebhookSecret struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Key       string `json:"key"`
+}
+
+type BroomWebhook struct {
+	Secret  BroomWebhookSecret `json:"secret"`
+	Channel string             `json:"channel,omitempty"`
+}
+
 // BroomSpec defines the desired state of Broom
 type BroomSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Broom. Edit broom_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Target      BroomTarget      `json:"target,omitempty"`
+	Adjustment  BroomAdjustment  `json:"adjustment"`
+	RetryPolicy BroomRetryPolicy `json:"retryPolicy"`
+	Webhook     BroomWebhook     `json:"webhook"`
 }
 
 // BroomStatus defines the observed state of Broom
