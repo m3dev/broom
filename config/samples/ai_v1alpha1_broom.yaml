@@ -17,7 +17,7 @@ spec:
   adjustment:
     type: Mul
     value: "2"
-  retryPolicy: "Allow"
+  restartPolicy: "OnOOM"
   slackWebhook:
     secret:
       namespace: default
