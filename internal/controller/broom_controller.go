@@ -105,15 +105,15 @@ func (r *BroomReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{}, fmt.Errorf("unable to update CronJob: %w", err)
 		}
 
-		var retriedJobName string
-		if broom.Spec.RetryPolicy == aiv1alpha1.RetryAllowPolicy {
-			retriedJobName, err = r.retryJob(ctx, &cronJob, info)
+		var restartedJobName string
+		if broom.Spec.RestartPolicy == aiv1alpha1.RestartOnOOMPolicy {
+			restartedJobName, err = r.restartUpdatedJob(ctx, &cronJob, info)
 			if err != nil {
-				return ctrl.Result{}, fmt.Errorf("unable to retry Job: %w", err)
+				return ctrl.Result{}, fmt.Errorf("unable to restart updated Job: %w", err)
 			}
 		}
 
-		if err := r.notifyResult(ctx, broom.Spec.Webhook, &cronJob, *oldSpec, retriedJobName); err != nil {
+		if err := r.notifyResult(ctx, broom.Spec.Webhook, &cronJob, *oldSpec, restartedJobName); err != nil {
 			return ctrl.Result{}, fmt.Errorf("unable to notify Slack: %w", err)
 		}
 	}
@@ -239,13 +239,13 @@ func (r *BroomReconciler) updateCronJob(ctx context.Context, cj *batchv1.CronJob
 	return nil
 }
 
-// retryJob creates Job for the failed Job with updated CronJob jobTemplate spec
-func (r *BroomReconciler) retryJob(ctx context.Context, cj *batchv1.CronJob, info cronJobOOMInfo) (string, error) {
+// restartUpdatedJob creates Job for the failed Job with updated CronJob jobTemplate spec
+func (r *BroomReconciler) restartUpdatedJob(ctx context.Context, cj *batchv1.CronJob, info cronJobOOMInfo) (string, error) {
 	log := log.FromContext(ctx)
 	randomString := random.GetRandomString(5)
-	retriedJobName := fmt.Sprintf("%s-retry-%s", info.LastFailedJob.Name, randomString)
+	retriedJobName := fmt.Sprintf("%s-restart-%s", info.LastFailedJob.Name, randomString)
 	annotations := map[string]string{
-		"rendezvous.m3.com/retried-by-broom": "true",
+		"rendezvous.m3.com/restarted-by-broom": "true",
 	}
 	job := batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -293,7 +293,7 @@ func (r *BroomReconciler) notifyResult(ctx context.Context, w aiv1alpha1.BroomWe
 		CronJobNamespace: cj.Namespace,
 		CronJobName:      cj.Name,
 		ContainerUpdates: []slack.ContainerUpdate{},
-		RetriedJobName:   rj,
+		RestartedJobName: rj,
 	}
 
 	for _, oc := range oldSpec.JobTemplate.Spec.Template.Spec.Containers {

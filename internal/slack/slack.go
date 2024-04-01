@@ -21,7 +21,7 @@ type UpdateResult struct {
 	CronJobNamespace string            `json:"cronjob_namespace"`
 	CronJobName      string            `json:"cronjob_name"`
 	ContainerUpdates []ContainerUpdate `json:"container_updates"`
-	RetriedJobName   string            `json:"retried_job_name"`
+	RestartedJobName string            `json:"restarted_job_name"`
 }
 
 func SendMessage(res UpdateResult, webhookURL string, webhookChannel string) error {
@@ -34,9 +34,9 @@ func SendMessage(res UpdateResult, webhookURL string, webhookChannel string) err
 		memoryChanges += fmt.Sprintf("\t:sparkles: *%s (%s → %s)*\n", u.Name, u.BeforeMemory, u.AfterMemory)
 	}
 
-	retriedJob := res.RetriedJobName
-	if retriedJob == "" {
-		retriedJob = "None"
+	restartedJob := res.RestartedJobName
+	if restartedJob == "" {
+		restartedJob = "None"
 	}
 
 	attatchment := slack.Attachment{
@@ -44,7 +44,7 @@ func SendMessage(res UpdateResult, webhookURL string, webhookChannel string) err
 			res.CronJobNamespace,
 			res.CronJobName,
 			memoryChanges,
-			retriedJob,
+			restartedJob,
 		),
 	}
 

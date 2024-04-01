@@ -63,11 +63,11 @@ func (adj BroomAdjustment) IncreaseMemory(m *resource.Quantity) error {
 	return nil
 }
 
-type BroomRetryPolicy string
+type BroomRestartPolicy string
 
 const (
-	RetryAllowPolicy  BroomRetryPolicy = "Allow"
-	RetryForbidPolicy BroomRetryPolicy = "Forbid"
+	RestartOnOOMPolicy BroomRestartPolicy = "OnOOM"
+	RestartNeverPolicy BroomRestartPolicy = "Never"
 )
 
 type BroomWebhookSecret struct {
@@ -86,10 +86,10 @@ type BroomSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Target      BroomTarget      `json:"target,omitempty"`
-	Adjustment  BroomAdjustment  `json:"adjustment"`
-	RetryPolicy BroomRetryPolicy `json:"retryPolicy"`
-	Webhook     BroomWebhook     `json:"webhook"`
+	Target        BroomTarget        `json:"target,omitempty"`
+	Adjustment    BroomAdjustment    `json:"adjustment"`
+	RestartPolicy BroomRestartPolicy `json:"restartPolicy"`
+	Webhook       BroomWebhook       `json:"webhook"`
 }
 
 // BroomStatus defines the observed state of Broom
