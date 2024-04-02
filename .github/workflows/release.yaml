@@ -1,8 +1,7 @@
 name: Release
 on:
-  push:
-    tags:
-      - "v*"
+  pull_request:
+
 jobs:
   release:
     name: Release
@@ -38,4 +37,3 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ steps.vars.outputs.tag }}
