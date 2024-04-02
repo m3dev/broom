@@ -39,10 +39,53 @@ spec:
           spec:
             description: BroomSpec defines the desired state of Broom
             properties:
-              foo:
-                description: Foo is an example field of Broom. Edit broom_types.go
-                  to remove/update
+              adjustment:
+                properties:
+                  type:
+                    type: string
+                  value:
+                    type: string
+                required:
+                - type
+                - value
+                type: object
+              restartPolicy:
                 type: string
+              slackWebhook:
+                properties:
+                  channel:
+                    type: string
+                  secret:
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
+                required:
+                - secret
+                type: object
+              target:
+                properties:
+                  labels:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
+            required:
+            - adjustment
+            - restartPolicy
+            - slackWebhook
             type: object
           status:
             description: BroomStatus defines the observed state of Broom

@@ -122,10 +122,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.BroomReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	if err = controller.New(mgr).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Broom")
 		os.Exit(1)
 	}
