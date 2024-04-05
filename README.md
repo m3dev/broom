@@ -1,4 +1,6 @@
 # broom
+<img src="https://github.com/m3dev/broom/assets/60843722/8860aaa0-e0b8-45cf-9b9e-59197dfc57a3" width="30%">
+
 // TODO(user): Add simple overview of use/purpose
 
 ## Description
