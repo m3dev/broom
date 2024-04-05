@@ -1,7 +1,18 @@
-# broom
-<img src="https://github.com/m3dev/broom/assets/60843722/8860aaa0-e0b8-45cf-9b9e-59197dfc57a3" width="30%">
+<img src="https://github.com/m3dev/broom/assets/60843722/8860aaa0-e0b8-45cf-9b9e-59197dfc57a3" width="50%">
 
-// TODO(user): Add simple overview of use/purpose
+**broom** is a Kubernetes Custom Controller designed to gracefully handle Out of Memory (OOM) events in CronJobs by dynamically increasing memory limits.
+
+It offers the following features:
+
+* **Dynamic Memory Limit Adjustment**: Automatically increases the memory limit of containers that experience OOM events within CronJob specs.
+
+* **Flexible Memory Adjustment Methods**: Users can choose between addition and multiplication methods for increasing memory limits.
+
+* **Automatic Job Restart**: Optionally, broom can restart the failed jobs with updated spec for recovery.
+
+* **Flexible Targeting**: Allows specifying target CronJobs using combinations of Name, Namespace, and Labels.
+
+* **Slack Notification Integration**: Provides webhook notifications to Slack, informing users about the results of updates and restarts.
 
 ## Description
 // TODO(user): An in-depth paragraph about your project and overview of use
