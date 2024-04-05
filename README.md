@@ -15,6 +15,8 @@ It offers the following features:
 * **Slack Notification Integration**: Provides webhook notifications to Slack, informing users about the results of updates and restarts.
 
 ## Description
+<img src="https://github.com/m3dev/broom/assets/60843722/df5219f3-d30f-47e9-84ef-a8c045cf1c1f" width="50%">
+
 // TODO(user): An in-depth paragraph about your project and overview of use
 
 ## Getting Started
@@ -45,7 +47,7 @@ make install
 **Deploy the Manager to the cluster with the image specified by `IMG`:**
 
 ```sh
-make deploy IMG=<some-registry>/tmp:tag
+make deploy IMG=<some-registry>/broom:tag
 ```
 
 > **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin 
