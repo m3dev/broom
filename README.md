@@ -26,6 +26,7 @@ Once the controller identifies the relevant CronJob, it prepares a modified spec
 Subsequently, the controller updates the specification of the CronJob with the modified memory limits.
 Optionally, the controller can restart the failed Job once using the updated memory limits. Finally, the controller sends a notification to Slack with the following content:
 
+<img src="https://github.com/m3dev/broom/assets/60843722/d7ed0819-0f4c-4f48-8763-04db017e6aac" width="50%">
 
 ### Configuration
 
