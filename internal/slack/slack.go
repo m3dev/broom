@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	slackUserName  = "Broom"
-	slackIconEmoji = ":broom:"
+	slackUserName = "Broom"
+	slackIconURL  = "https://raw.githubusercontent.com/Kitsuya0828/broom-assets/main/logo_dark.png"
 )
 
 type ContainerUpdate struct {
@@ -50,7 +50,7 @@ func SendMessage(res UpdateResult, webhookURL string, webhookChannel string) err
 
 	msg := slack.WebhookMessage{
 		Username:    slackUserName,
-		IconEmoji:   slackIconEmoji,
+		IconURL:     slackIconURL,
 		Channel:     webhookChannel,
 		Text:        ":broom: CronJob jobTemplate updated",
 		Attachments: []slack.Attachment{attatchment},

@@ -21,7 +21,7 @@ spec:
               args:
                 - |
                   echo PID=$$
-                  for i in {0..9}
+                  for i in {0..999}
                   do
                     eval a$i'=$(head --bytes 5000000 /dev/zero | cat -v)'
                     echo $((i++));
