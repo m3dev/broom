@@ -15,9 +15,53 @@ It offers the following features:
 * **Slack Notification Integration**: Provides webhook notifications to Slack, informing users about the results of updates and restarts.
 
 ## Description
+
+### How it works
+When a `phase: Failed` Pod is detected, the reconciliation loop iterates as follows:
+
 <img src="https://github.com/m3dev/broom/assets/60843722/df5219f3-d30f-47e9-84ef-a8c045cf1c1f" width="50%">
 
-// TODO(user): An in-depth paragraph about your project and overview of use
+Upon identifying a Pod terminated due to `reason: OOMKilled`, the controller traces back through the `ownerReferences` from Pod to Job to CronJob.
+Once the controller identifies the relevant CronJob, it prepares a modified specification with relaxed memory limits (`spec.jobTemplate.spec.containers[].resources.limits.memory`), such as doubling the original limit.
+Subsequently, the controller updates the specification of the CronJob with the modified memory limits.
+Optionally, the controller can restart the failed Job once using the updated memory limits. Finally, the controller sends a notification to Slack with the following content:
+
+
+### Configuration
+
+The controller can be configured using a `Broom` custom resource, which allows users to specify the following parameters:
+
+```yaml
+apiVersion: ai.m3.com/v1alpha1
+kind: Broom
+metadata:
+  name: broom-sample
+spec:
+  target:
+    name: oom-sample
+    labels:
+      m3.com/use-broom: "true"
+    namespace: broom
+  adjustment:
+    type: Mul
+    value: "2"
+  restartPolicy: "OnOOM"
+  slackWebhook:
+    secret:
+      namespace: default
+      name: broom
+      key: SLACK_WEBHOOK_URL
+    channel: "#alert"
+```
+
+* **target** (optional): Specifies the target CronJobs to monitor for OOM events. Users can specify the target CronJobs using a combination of `name`, `namespace`, and `labels`. If not specified, the controller will monitor all CronJobs in the cluster.
+
+* **adjustment** (required): Specifies the method and value for adjusting memory limits. Users can choose between `Add` and `Mul` methods for increasing memory limits, along with the corresponding value.
+
+* **restartPolicy** (required): Specifies the policy for restarting failed Jobs. Users can choose between `Never` and `OnOOM` policies.
+
+* **slackWebhook** (required): Specifies the Slack webhook integration for sending notifications. Users can provide the webhook URL using a Kubernetes Secret and specify the target channel (optional) for notifications.
+
 
 ## Getting Started
 
