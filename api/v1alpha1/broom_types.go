@@ -46,7 +46,7 @@ type BroomAdjustment struct {
 	MaxLimit string              `json:"maxLimit,omitempty"`
 }
 
-// AdjustMemory adjusts the memory quantity based on the adjustment type and value.
+// AdjustMemory adjusts the memory based on the adjustment type, value and maxLimit.
 func (adj BroomAdjustment) AdjustMemory(m *resource.Quantity) (bool, error) {
 	before := m.DeepCopy()
 	switch adj.Type {

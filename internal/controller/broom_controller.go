@@ -214,7 +214,7 @@ func (r *BroomReconciler) traceOOMKilledOwnerReference(br *batchResources) map[t
 	return cronJobOwnedReferences
 }
 
-// modifyCronJobSpec modifies the CronJob spec based on the Broom adjustment
+// modifyCronJobSpec modifies the CronJob spec based on the Broom adjustment and returns whether the spec is modified or not
 func (r *BroomReconciler) modifyCronJobSpec(spec *batchv1.CronJobSpec, adj aiv1alpha1.BroomAdjustment, containers []string) (bool, error) {
 	isSpecModified := false
 	for i, c := range spec.JobTemplate.Spec.Template.Spec.Containers {
@@ -236,7 +236,7 @@ func (r *BroomReconciler) modifyCronJobSpec(spec *batchv1.CronJobSpec, adj aiv1a
 	return isSpecModified, nil
 }
 
-// updateCronJob updates the CronJob in the Kubernetes cluster with given spec
+// updateCronJob updates the CronJob with the new spec and returns the result of the update
 func (r *BroomReconciler) updateCronJob(ctx context.Context, cj *batchv1.CronJob, spec *batchv1.CronJobSpec, adj aiv1alpha1.BroomAdjustment) (*slack.UpdateResult, error) {
 	log := log.FromContext(ctx)
 	beforeSpec := cj.Spec.DeepCopy()

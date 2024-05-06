@@ -25,6 +25,7 @@ type UpdateResult struct {
 	RestartedJobName string            `json:"restarted_job_name"`
 }
 
+// SendMessage sends a message to the Slack via webhook
 func SendMessage(res *UpdateResult, webhookURL string, webhookChannel string) error {
 	if len(res.ContainerUpdates) == 0 {
 		return nil
