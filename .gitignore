@@ -26,3 +26,6 @@ go.work
 *.swp
 *.swo
 *~
+
+# sample config files
+config/samples/secret.yaml 
