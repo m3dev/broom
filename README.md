@@ -46,7 +46,8 @@ spec:
   adjustment:
     type: Mul
     value: "2"
-  restartPolicy: "OnOOM"
+    maxLimit: 250Mi
+  restartPolicy: OnSpecChanged
   slackWebhook:
     secret:
       namespace: default
@@ -55,13 +56,24 @@ spec:
     channel: "#alert"
 ```
 
-* **target** (optional): Specifies the target CronJobs to monitor for OOM events. Users can specify the target CronJobs using a combination of `name`, `namespace`, and `labels`. If not specified, the controller will monitor all CronJobs in the cluster.
+* `target` <small>(optional)</small> : Target CronJob conditions. If not specified, the controller will target all CronJobs in the cluster.
+  * `namespace` <small>(optional)</small> : Namespace of the target CronJob.
+  * `name` <small>(optional)</small> : Name of the target CronJob.
+  * `labels` <small>(optional)</small> : Labels to filter the target CronJobs.
 
-* **adjustment** (required): Specifies the method and value for adjusting memory limits. Users can choose between `Add` and `Mul` methods for increasing memory limits, along with the corresponding value.
+* `adjustment` <small>(<font color="red">required</font>)</small> : Memory limit adjustment parameters.
+  * `type` <small>(<font color="red">required</font>)</small> : Adjustment method. Choose between `Add` and `Mul`.
+  * `value` <small>(<font color="red">required</font>)</small> : Adjustment value. For `Add`, it is the value to add to the current limit (e.g., `100Mi`). For `Mul`, it is the multiplier to apply to the current limit (e.g., `"2"`, must be double-quoted).
+  * `maxLimit` <small>(optional)</small> : Maximum memory limit to set.
 
-* **restartPolicy** (required): Specifies the policy for restarting failed Jobs. Users can choose between `Never` and `OnOOM` policies.
+* `restartPolicy` <small>(<font color="red">required</font>)</small> : Policy for restarting failed Jobs. Choose among `Never` (no restart), `OnOOM` (restart when OOM CronJob is detected), and `OnSpecChanged` (restart only when OOM CronJob is detected and the memory limit is updated).
 
-* **slackWebhook** (required): Specifies the Slack webhook integration for sending notifications. Users can provide the webhook URL using a Kubernetes Secret and specify the target channel (optional) for notifications.
+* `slackWebhook` <small>(<font color="red">required</font>)</small> : Slack notification integration.
+  * `secret` <small>(<font color="red">required</font>)</small> : Kubernetes Secret containing the Slack webhook URL.
+    * `namespace` <small>(<font color="red">required</font>)</small> : Namespace of the Secret.
+    * `name` <small>(<font color="red">required</font>)</small> : Name of the Secret.
+    * `key` <small>(<font color="red">required</font>)</small> : Key containing the webhook URL.
+  * `channel` <small>(optional)</small> : Slack channel to send notifications. If not specified, the notification will be sent to the default channel.
 
 
 ## Getting Started
