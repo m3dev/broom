@@ -23,6 +23,7 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -95,25 +96,27 @@ func (r *BroomReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			continue
 		}
 		oldSpec := cronJob.Spec.DeepCopy()
-		newSpec, err := r.getNewCronJobSpec(&cronJob, broom.Spec.Adjustment, info.OOMContainerNames)
+		newSpec := oldSpec.DeepCopy()
+		isModified, err := r.modifyCronJobSpec(newSpec, broom.Spec.Adjustment, info.OOMContainerNames)
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("unable to get updated CronJob spec: %w", err)
+			return ctrl.Result{}, fmt.Errorf("unable to modify CronJob spec: %w", err)
 		}
 
-		err = r.updateCronJob(ctx, &cronJob, newSpec)
+		res, err := r.updateCronJob(ctx, &cronJob, newSpec, broom.Spec.Adjustment)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("unable to update CronJob: %w", err)
 		}
 
-		var restartedJobName string
-		if broom.Spec.RestartPolicy == aiv1alpha1.RestartOnOOMPolicy {
-			restartedJobName, err = r.restartUpdatedJob(ctx, &cronJob, info)
+		if broom.Spec.RestartPolicy != aiv1alpha1.RestartOnOOMPolicy ||
+			(isModified && broom.Spec.RestartPolicy == aiv1alpha1.RestartOnSpecChangedPolicy) {
+			restartedJobName, err := r.restartUpdatedJob(ctx, &cronJob, info)
 			if err != nil {
 				return ctrl.Result{}, fmt.Errorf("unable to restart updated Job: %w", err)
 			}
+			res.RestartedJobName = restartedJobName
 		}
 
-		if err := r.notifyResult(ctx, broom.Spec.SlackWebhook, &cronJob, *oldSpec, restartedJobName); err != nil {
+		if err := r.notifyResult(ctx, &broom, res); err != nil {
 			return ctrl.Result{}, fmt.Errorf("unable to notify Slack: %w", err)
 		}
 	}
@@ -211,32 +214,63 @@ func (r *BroomReconciler) traceOOMKilledOwnerReference(br *batchResources) map[t
 	return cronJobOwnedReferences
 }
 
-// getNewCronJobSpec returns a spec with increased memory limit for CronJob
-func (r *BroomReconciler) getNewCronJobSpec(cj *batchv1.CronJob, adj aiv1alpha1.BroomAdjustment, containers []string) (*batchv1.CronJobSpec, error) {
-	newSpec := cj.Spec.DeepCopy()
-	for i, c := range cj.Spec.JobTemplate.Spec.Template.Spec.Containers {
+// modifyCronJobSpec modifies the CronJob spec based on the Broom adjustment
+func (r *BroomReconciler) modifyCronJobSpec(spec *batchv1.CronJobSpec, adj aiv1alpha1.BroomAdjustment, containers []string) (bool, error) {
+	isSpecModified := false
+	for i, c := range spec.JobTemplate.Spec.Template.Spec.Containers {
 		if !slices.Contains(containers, c.Name) { // Ignore non-OOM Pod containers
 			continue
 		}
 		if m := c.Resources.Limits.Memory(); m != nil {
-			if err := adj.IncreaseMemory(m); err != nil {
-				return &batchv1.CronJobSpec{}, fmt.Errorf("unable to increase memory: %w", err)
+			changed, err := adj.AdjustMemory(m)
+			if err != nil {
+				return false, fmt.Errorf("unable to adjust memory: %w", err)
 			}
-			newSpec.JobTemplate.Spec.Template.Spec.Containers[i].Resources.Limits[corev1.ResourceMemory] = *m
+			if !changed {
+				continue
+			}
+			spec.JobTemplate.Spec.Template.Spec.Containers[i].Resources.Limits[corev1.ResourceMemory] = *m
+			isSpecModified = true
 		}
 	}
-	return newSpec, nil
+	return isSpecModified, nil
 }
 
 // updateCronJob updates the CronJob in the Kubernetes cluster with given spec
-func (r *BroomReconciler) updateCronJob(ctx context.Context, cj *batchv1.CronJob, spec *batchv1.CronJobSpec) error {
+func (r *BroomReconciler) updateCronJob(ctx context.Context, cj *batchv1.CronJob, spec *batchv1.CronJobSpec, adj aiv1alpha1.BroomAdjustment) (*slack.UpdateResult, error) {
 	log := log.FromContext(ctx)
+	beforeSpec := cj.Spec.DeepCopy()
 	cj.Spec = *spec
 	if err := r.Update(ctx, cj); err != nil {
-		return fmt.Errorf("unable to update CronJob: %w", err)
+		return nil, fmt.Errorf("unable to update CronJob: %w", err)
 	}
-	log.Info("Updated CronJob", "name", cj.Name)
-	return nil
+	res := &slack.UpdateResult{
+		CronJobNamespace: cj.Namespace,
+		CronJobName:      cj.Name,
+		ContainerUpdates: []slack.ContainerUpdate{},
+	}
+
+	for _, before := range beforeSpec.JobTemplate.Spec.Template.Spec.Containers {
+		for _, after := range cj.Spec.JobTemplate.Spec.Template.Spec.Containers {
+			if before.Name == after.Name {
+				containerUpdate := slack.ContainerUpdate{
+					Name:         after.Name,
+					BeforeMemory: before.Resources.Limits.Memory().String(),
+					AfterMemory:  after.Resources.Limits.Memory().String(),
+				}
+				if adj.MaxLimit != "" {
+					maxLimit, err := resource.ParseQuantity(adj.MaxLimit)
+					if err != nil {
+						log.Error(err, "unable to parse maxLimit", "value", adj.MaxLimit)
+					}
+					containerUpdate.MaxLimitReached = after.Resources.Limits.Memory().Equal(maxLimit)
+				}
+				res.ContainerUpdates = append(res.ContainerUpdates, containerUpdate)
+			}
+		}
+	}
+	log.Info("Updated CronJob", "result", res)
+	return res, nil
 }
 
 // restartUpdatedJob creates Job for the failed Job with updated CronJob jobTemplate spec
@@ -281,32 +315,14 @@ func isTargeted(cj batchv1.CronJob, target aiv1alpha1.BroomTarget) bool {
 }
 
 // notifyResult notifies the result of changes with webhook information retrieved from Secret
-func (r *BroomReconciler) notifyResult(ctx context.Context, w aiv1alpha1.BroomSlackWebhook, cj *batchv1.CronJob, oldSpec batchv1.CronJobSpec, rj string) error {
+func (r *BroomReconciler) notifyResult(ctx context.Context, broom *aiv1alpha1.Broom, res *slack.UpdateResult) error {
 	secret := &corev1.Secret{}
+	w := broom.Spec.SlackWebhook
 	if err := r.Get(ctx, client.ObjectKey{Namespace: w.Secret.Namespace, Name: w.Secret.Name}, secret); err != nil {
 		return fmt.Errorf("unable to get Secret for webhook URL: %w", err)
 	}
 	webhookURL := string(secret.Data[w.Secret.Key])
 	webhookChannel := w.Channel
-
-	res := slack.UpdateResult{
-		CronJobNamespace: cj.Namespace,
-		CronJobName:      cj.Name,
-		ContainerUpdates: []slack.ContainerUpdate{},
-		RestartedJobName: rj,
-	}
-
-	for _, oc := range oldSpec.JobTemplate.Spec.Template.Spec.Containers {
-		for _, nc := range cj.Spec.JobTemplate.Spec.Template.Spec.Containers {
-			if oc.Name == nc.Name && !(oc.Resources.Limits.Memory().Equal(*nc.Resources.Limits.Memory())) {
-				res.ContainerUpdates = append(res.ContainerUpdates, slack.ContainerUpdate{
-					Name:         oc.Name,
-					BeforeMemory: oc.Resources.Limits.Memory().String(),
-					AfterMemory:  nc.Resources.Limits.Memory().String(),
-				})
-			}
-		}
-	}
 
 	if err := slack.SendMessage(res, webhookURL, webhookChannel); err != nil {
 		return fmt.Errorf("unable to send message to Slack: %w", err)

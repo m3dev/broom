@@ -17,7 +17,8 @@ spec:
   adjustment:
     type: Mul
     value: "2"
-  restartPolicy: "OnOOM"
+    maxLimit: "250Mi"
+  restartPolicy: "OnSpecChanged"
   slackWebhook:
     secret:
       namespace: default

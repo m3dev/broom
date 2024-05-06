@@ -18,9 +18,12 @@ package controller
 
 import (
 	"context"
+	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
+	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -29,6 +32,164 @@ import (
 
 	aiv1alpha1 "github.com/m3dev/broom/api/v1alpha1"
 )
+
+func TestIsTargeted(t *testing.T) {
+	tests := map[string]struct {
+		cj       batchv1.CronJob
+		target   aiv1alpha1.BroomTarget
+		expected bool
+	}{
+		"namespace is matched": {
+			cj: batchv1.CronJob{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "targeted-namespace",
+					Name:      "test-cronjob",
+				},
+			},
+			target: aiv1alpha1.BroomTarget{
+				Namespace: "targeted-namespace",
+			},
+			expected: true,
+		},
+		"namespace is not matched": {
+			cj: batchv1.CronJob{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test-namespace",
+					Name:      "test-cronjob",
+				},
+			},
+			target: aiv1alpha1.BroomTarget{
+				Namespace: "targeted-namespace",
+			},
+			expected: false,
+		},
+		"name is matched": {
+			cj: batchv1.CronJob{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test-namespace",
+					Name:      "targeted-cronjob",
+				},
+			},
+			target: aiv1alpha1.BroomTarget{
+				Name: "targeted-cronjob",
+			},
+			expected: true,
+		},
+		"name is not matched": {
+			cj: batchv1.CronJob{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test-namespace",
+					Name:      "test-cronjob",
+				},
+			},
+			target: aiv1alpha1.BroomTarget{
+				Name: "targeted-cronjob",
+			},
+			expected: false,
+		},
+		"labels are matched": {
+			cj: batchv1.CronJob{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test-namespace",
+					Name:      "test-cronjob",
+					Labels: map[string]string{
+						"targeted": "true",
+						"env":      "dev",
+					},
+				},
+			},
+			target: aiv1alpha1.BroomTarget{
+				Labels: map[string]string{
+					"targeted": "true",
+				},
+			},
+			expected: true,
+		},
+		"labels are not matched": {
+			cj: batchv1.CronJob{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test-namespace",
+					Name:      "test-cronjob",
+					Labels: map[string]string{
+						"targeted": "true",
+						"env":      "prod",
+					},
+				},
+			},
+			target: aiv1alpha1.BroomTarget{
+				Labels: map[string]string{
+					"targeted": "true",
+					"env":      "dev",
+				},
+			},
+			expected: false,
+		},
+		"all fields are matched": {
+			cj: batchv1.CronJob{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "targeted-namespace",
+					Name:      "targeted-cronjob",
+					Labels: map[string]string{
+						"targeted": "true",
+						"env":      "dev",
+					},
+				},
+			},
+			target: aiv1alpha1.BroomTarget{
+				Namespace: "targeted-namespace",
+				Name:      "targeted-cronjob",
+				Labels: map[string]string{
+					"targeted": "true",
+					"env":      "dev",
+				},
+			},
+			expected: true,
+		},
+		"not all fields are matched": {
+			cj: batchv1.CronJob{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "targeted-namespace",
+					Name:      "targeted-cronjob",
+					Labels: map[string]string{
+						"targeted": "true",
+						"env":      "dev",
+					},
+				},
+			},
+			target: aiv1alpha1.BroomTarget{
+				Namespace: "targeted-namespace",
+				Name:      "targeted-cronjob",
+				Labels: map[string]string{
+					"targeted": "true",
+					"env":      "prod",
+				},
+			},
+			expected: false,
+		},
+		"no target": {
+			cj: batchv1.CronJob{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "targeted-namespace",
+					Name:      "targeted-cronjob",
+					Labels: map[string]string{
+						"targeted": "true",
+						"env":      "dev",
+					},
+				},
+			},
+			target:   aiv1alpha1.BroomTarget{},
+			expected: true,
+		},
+	}
+	for name, test := range tests {
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			got := isTargeted(test.cj, test.target)
+			assert.Equal(t, test.expected, got)
+		})
+	}
+}
 
 var _ = Describe("Broom Controller", func() {
 	Context("When reconciling a resource", func() {

@@ -41,6 +41,8 @@ spec:
             properties:
               adjustment:
                 properties:
+                  maxLimit:
+                    type: string
                   type:
                     type: string
                   value:

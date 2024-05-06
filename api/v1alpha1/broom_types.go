@@ -41,33 +41,51 @@ const (
 )
 
 type BroomAdjustment struct {
-	Type  BroomAdjustmentType `json:"type"`
-	Value string              `json:"value"`
+	Type     BroomAdjustmentType `json:"type"`
+	Value    string              `json:"value"`
+	MaxLimit string              `json:"maxLimit,omitempty"`
 }
 
-func (adj BroomAdjustment) IncreaseMemory(m *resource.Quantity) error {
+// AdjustMemory adjusts the memory quantity based on the adjustment type and value.
+func (adj BroomAdjustment) AdjustMemory(m *resource.Quantity) (bool, error) {
+	before := m.DeepCopy()
 	switch adj.Type {
 	case AddAdjustment:
 		y, err := resource.ParseQuantity(adj.Value)
 		if err != nil {
-			return fmt.Errorf("unable to parse value to resource.Quantity: %w", err)
+			return false, fmt.Errorf("unable to parse value to resource.Quantity: %w", err)
 		}
 		m.Add(y)
 	case MulAdjustment:
 		y, err := strconv.Atoi(adj.Value)
 		if err != nil {
-			return fmt.Errorf("unable to parse value to int: %w", err)
+			return false, fmt.Errorf("unable to parse value to int: %w", err)
 		}
 		m.Mul(int64(y))
 	}
-	return nil
+
+	if adj.MaxLimit == "" {
+		return true, nil
+	}
+	maxLimit, err := resource.ParseQuantity(adj.MaxLimit)
+	if err != nil {
+		return false, fmt.Errorf("unable to parse maxLimit to resource.Quantity: %w", err)
+	}
+	if m.Cmp(maxLimit) == 1 { // m is greater than maxLimit
+		*m = maxLimit
+	}
+	if !m.Equal(before) {
+		return true, nil
+	}
+	return false, nil
 }
 
 type BroomRestartPolicy string
 
 const (
-	RestartOnOOMPolicy BroomRestartPolicy = "OnOOM"
-	RestartNeverPolicy BroomRestartPolicy = "Never"
+	RestartOnOOMPolicy         BroomRestartPolicy = "OnOOM"
+	RestartOnSpecChangedPolicy BroomRestartPolicy = "OnSpecChanged"
+	RestartNeverPolicy         BroomRestartPolicy = "Never"
 )
 
 type BroomSlackWebhookSecret struct {
