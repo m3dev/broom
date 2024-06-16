@@ -23,7 +23,6 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -222,11 +221,11 @@ func (r *BroomReconciler) modifyCronJobSpec(spec *batchv1.CronJobSpec, adj aiv1a
 			continue
 		}
 		if m := c.Resources.Limits.Memory(); m != nil {
-			changed, err := adj.AdjustMemory(m)
-			if err != nil {
+			before := m.DeepCopy()
+			if err := adj.AdjustMemory(m); err != nil {
 				return false, fmt.Errorf("unable to adjust memory: %w", err)
 			}
-			if !changed {
+			if m.Equal(before) {
 				continue
 			}
 			spec.JobTemplate.Spec.Template.Spec.Containers[i].Resources.Limits[corev1.ResourceMemory] = *m
@@ -258,12 +257,8 @@ func (r *BroomReconciler) updateCronJob(ctx context.Context, cj *batchv1.CronJob
 					BeforeMemory: before.Resources.Limits.Memory().String(),
 					AfterMemory:  after.Resources.Limits.Memory().String(),
 				}
-				if adj.MaxLimit != "" {
-					maxLimit, err := resource.ParseQuantity(adj.MaxLimit)
-					if err != nil {
-						log.Error(err, "unable to parse maxLimit", "value", adj.MaxLimit)
-					}
-					containerUpdate.MaxLimitReached = after.Resources.Limits.Memory().Equal(maxLimit)
+				if !adj.MaxLimit.IsZero() {
+					containerUpdate.MaxLimitReached = after.Resources.Limits.Memory().Equal(adj.MaxLimit)
 				}
 				res.ContainerUpdates = append(res.ContainerUpdates, containerUpdate)
 			}

@@ -41,43 +41,38 @@ const (
 )
 
 type BroomAdjustment struct {
-	Type     BroomAdjustmentType `json:"type"`
-	Value    string              `json:"value"`
-	MaxLimit string              `json:"maxLimit,omitempty"`
+	// Adjustment type. `Add` or `Mul`.
+	Type BroomAdjustmentType `json:"type"`
+	// Adjustment value. For `Add` type, it is the value to be added to the current memory. For `Mul` type, it is the value to be multiplied with the current memory.
+	Value string `json:"value"`
+	// Maximum limit for the memory. If the memory after adjustment is greater than this value, the memory is set to this value.
+	MaxLimit resource.Quantity `json:"maxLimit,omitempty"`
 }
 
 // AdjustMemory adjusts the memory based on the adjustment type, value and maxLimit.
-func (adj BroomAdjustment) AdjustMemory(m *resource.Quantity) (bool, error) {
-	before := m.DeepCopy()
+func (adj BroomAdjustment) AdjustMemory(m *resource.Quantity) error {
 	switch adj.Type {
 	case AddAdjustment:
 		y, err := resource.ParseQuantity(adj.Value)
 		if err != nil {
-			return false, fmt.Errorf("unable to parse value to resource.Quantity: %w", err)
+			return fmt.Errorf("unable to parse value to resource.Quantity: %w", err)
 		}
 		m.Add(y)
 	case MulAdjustment:
 		y, err := strconv.Atoi(adj.Value)
 		if err != nil {
-			return false, fmt.Errorf("unable to parse value to int: %w", err)
+			return fmt.Errorf("unable to parse value to int: %w", err)
 		}
 		m.Mul(int64(y))
 	}
 
-	if adj.MaxLimit == "" {
-		return true, nil
+	if adj.MaxLimit.IsZero() { // maxLimit is not set
+		return nil
 	}
-	maxLimit, err := resource.ParseQuantity(adj.MaxLimit)
-	if err != nil {
-		return false, fmt.Errorf("unable to parse maxLimit to resource.Quantity: %w", err)
+	if m.Cmp(adj.MaxLimit) == 1 { // m is greater than maxLimit
+		*m = adj.MaxLimit
 	}
-	if m.Cmp(maxLimit) == 1 { // m is greater than maxLimit
-		*m = maxLimit
-	}
-	if !m.Equal(before) {
-		return true, nil
-	}
-	return false, nil
+	return nil
 }
 
 type BroomRestartPolicy string
