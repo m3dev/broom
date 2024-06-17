@@ -12,9 +12,10 @@ const (
 )
 
 type ContainerUpdate struct {
-	Name         string `json:"name"`
-	BeforeMemory string `json:"before_memory"`
-	AfterMemory  string `json:"after_memory"`
+	Name            string `json:"name"`
+	BeforeMemory    string `json:"before_memory"`
+	AfterMemory     string `json:"after_memory"`
+	MaxLimitReached bool   `json:"max_limit_reached"`
 }
 
 type UpdateResult struct {
@@ -24,14 +25,22 @@ type UpdateResult struct {
 	RestartedJobName string            `json:"restarted_job_name"`
 }
 
-func SendMessage(res UpdateResult, webhookURL string, webhookChannel string) error {
+// SendMessage sends a message to the Slack via webhook
+func SendMessage(res *UpdateResult, webhookURL string, webhookChannel string) error {
 	if len(res.ContainerUpdates) == 0 {
 		return nil
 	}
 
 	var memoryChanges string
 	for _, u := range res.ContainerUpdates {
-		memoryChanges += fmt.Sprintf("\t:sparkles: *%s (%s → %s)*\n", u.Name, u.BeforeMemory, u.AfterMemory)
+		var maxLimitReachedMessage string
+		if u.MaxLimitReached {
+			maxLimitReachedMessage = ":rotating_light: MAX LIMIT REACHED"
+		}
+		memoryChanges += fmt.Sprintf(
+			"\t:sparkles: *%s (%s → %s %s)*\n",
+			u.Name, u.BeforeMemory, u.AfterMemory, maxLimitReachedMessage,
+		)
 	}
 
 	restartedJob := res.RestartedJobName
@@ -40,7 +49,8 @@ func SendMessage(res UpdateResult, webhookURL string, webhookChannel string) err
 	}
 
 	attatchment := slack.Attachment{
-		Text: fmt.Sprintf("Namespace: *%s*\nName: *%s*\nContainer memory changes:\n%sRestarted Job: *%s*\n",
+		Text: fmt.Sprintf(
+			"Namespace: *%s*\nCronJob name: *%s*\nContainer memory changes:\n%sRestarted Job name: *%s*\n",
 			res.CronJobNamespace,
 			res.CronJobName,
 			memoryChanges,
@@ -52,7 +62,7 @@ func SendMessage(res UpdateResult, webhookURL string, webhookChannel string) err
 		Username:    slackUserName,
 		IconURL:     slackIconURL,
 		Channel:     webhookChannel,
-		Text:        ":broom: CronJob jobTemplate updated",
+		Text:        ":broom: updated OOM CronJob",
 		Attachments: []slack.Attachment{attatchment},
 	}
 	err := slack.PostWebhook(webhookURL, &msg)

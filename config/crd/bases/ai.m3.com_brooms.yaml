@@ -41,9 +41,22 @@ spec:
             properties:
               adjustment:
                 properties:
+                  maxLimit:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Maximum limit for the memory. If the memory after
+                      adjustment is greater than this value, the memory is set to
+                      this value.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
                   type:
+                    description: Adjustment type. `Add` or `Mul`.
                     type: string
                   value:
+                    description: Adjustment value. For `Add` type, it is the value
+                      to be added to the current memory. For `Mul` type, it is the
+                      value to be multiplied with the current memory.
                     type: string
                 required:
                 - type

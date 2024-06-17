@@ -41,11 +41,16 @@ const (
 )
 
 type BroomAdjustment struct {
-	Type  BroomAdjustmentType `json:"type"`
-	Value string              `json:"value"`
+	// Adjustment type. `Add` or `Mul`.
+	Type BroomAdjustmentType `json:"type"`
+	// Adjustment value. For `Add` type, it is the value to be added to the current memory. For `Mul` type, it is the value to be multiplied with the current memory.
+	Value string `json:"value"`
+	// Maximum limit for the memory. If the memory after adjustment is greater than this value, the memory is set to this value.
+	MaxLimit resource.Quantity `json:"maxLimit,omitempty"`
 }
 
-func (adj BroomAdjustment) IncreaseMemory(m *resource.Quantity) error {
+// AdjustMemory adjusts the memory based on the adjustment type, value and maxLimit.
+func (adj BroomAdjustment) AdjustMemory(m *resource.Quantity) error {
 	switch adj.Type {
 	case AddAdjustment:
 		y, err := resource.ParseQuantity(adj.Value)
@@ -60,14 +65,22 @@ func (adj BroomAdjustment) IncreaseMemory(m *resource.Quantity) error {
 		}
 		m.Mul(int64(y))
 	}
+
+	if adj.MaxLimit.IsZero() { // maxLimit is not set
+		return nil
+	}
+	if m.Cmp(adj.MaxLimit) == 1 { // m is greater than maxLimit
+		*m = adj.MaxLimit
+	}
 	return nil
 }
 
 type BroomRestartPolicy string
 
 const (
-	RestartOnOOMPolicy BroomRestartPolicy = "OnOOM"
-	RestartNeverPolicy BroomRestartPolicy = "Never"
+	RestartOnOOMPolicy         BroomRestartPolicy = "OnOOM"
+	RestartOnSpecChangedPolicy BroomRestartPolicy = "OnSpecChanged"
+	RestartNeverPolicy         BroomRestartPolicy = "Never"
 )
 
 type BroomSlackWebhookSecret struct {
