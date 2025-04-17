@@ -1,4 +1,3 @@
-<!-- https://github.com/stevemao/github-issue-templates/blob/master/questions-answers/PULL_REQUEST_TEMPLATE.md -->
 <!--- Provide a general summary of your changes in the Title above -->
 
 ## Description
